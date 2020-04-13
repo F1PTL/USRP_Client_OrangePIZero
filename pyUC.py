@@ -17,6 +17,10 @@
 # OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 ###################################################################################
+# Le 13/04/2020
+# Modification ON4RD Renè et F1PTL Bruno
+# Utilisation sur Orange PI Zero avec les modules Spotnik Beta et Delta
+#
 
 from tkinter import *
 from tkinter import ttk
@@ -43,12 +47,12 @@ import hashlib
 from tkinter import font
 import OPi.GPIO as GPIO
 import serial
-PTT = 26                 # pin 31 du raspi = GPIO 06
-RECEPT = 12              # pin 29 raspi = ?
-flag = True              # pas encore utilise
+PTT = 26                      # pin 31 du raspi = GPIO 06
+RECEPT = 12                   # pin 29 raspi = ?
+flag = True                   # pas encore utilise
 GPIO.setboard(GPIO.ZERO)
-GPIO.setmode(GPIO.BOARD) # mode pin  ou GPIO.BCM mode GPIO
-GPIO.setwarnings(False)  # On desactive les messages d'alerte
+GPIO.setmode(GPIO.BOARD)      # mode pin  ou GPIO.BCM mode GPIO
+GPIO.setwarnings(False)       # On desactive les messages d'alerte
 # on met le PTT a l etat HAUT par defaut afin qu il n y aie pas 
 # de porteuses indesirables
 # on peut le mettre a l etat bas en changeant PUD_UP par PUD_DOWN
@@ -57,7 +61,7 @@ GPIO.setup(RECEPT,GPIO.OUT)
 GPIO.output(RECEPT,GPIO.LOW)   # par defaut la reception est desacivee
 BAUD=115200                    # l ecran nextion travaille en 115200 bauds
 # PORT='/dev/ttyAMA0'          # sur le port UART
-PORT='/dev/tty0'            # sur le port UART
+PORT='/dev/tty0'               # sur le port UART
 
 ser = serial.Serial(
 port=PORT,
