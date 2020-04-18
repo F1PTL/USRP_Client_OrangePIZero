@@ -199,7 +199,7 @@ def makeLog(tc,call,tg,loss,rxTime):
 
 #  fin de modif 
 
-UC_VERSION = "1.2.3"
+UC_VERSION = "1.2.1.3"
 
 ###################################################################################
 # Declare input and output ports for communication with AB
