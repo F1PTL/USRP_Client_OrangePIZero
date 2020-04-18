@@ -1,4 +1,4 @@
-﻿#!/usr/bin/python3
+#!/usr/bin/python3
 ###################################################################################
 # pyUC ("puck")
 # Copyright (C) 2014, 2015, 2016, 2019, 2020 N4IRR
@@ -43,11 +43,13 @@ import hashlib
 from tkinter import font
 from RPi import GPIO
 import serial
+import math
+pttAuto =  False
 PTT = 31                 # pin 31 du raspi = GPIO 06
 RECEPT = 29              # pin 29 raspi = ?
-flag = True              # pas encore utilise
 GPIO.setmode(GPIO.BOARD) # mode pin  ou GPIO.BCM mode GPIO
 GPIO.setwarnings(False)  # On desactive les messages d'alerte
+
 # on met le PTT a l etat HAUT par defaut afin qu il n y aie pas 
 # de porteuses indesirables
 # on peut le mettre a l etat bas en changeant PUD_UP par PUD_DOWN
@@ -66,6 +68,7 @@ bytesize=serial.EIGHTBITS,
 timeout=1
 )
 #**************************************************************
+#               Modifications     ON4RD & F1PTL                *
 #       Pour trouver les modifs aplliquees  tapez MODIF       *
 #              dans votre recherche                           * 
 #**************************************************************
@@ -84,10 +87,6 @@ def getForNextion(call,rxslot,tg,loss,rxTime):
    x=t1+'"'+str(call)+'"'     # valeur =  les calls TX et RX
    b=x.encode()               # convertit les chaines en bytes  
    sendToNextion(b)           # puis envoie le resultat sur l ecran  
-#   t3="t3.txt="
-#   x=t3+'"'+str(rxslot)+'"'  # pas necessaire pour l'instant 
-#   b=x.encode()              # idem
-#   sendToNextion(b)          # idem
    t0="t0.txt="               # idem ci-dessous mais pour le TG 
    x=t0+'"'+str(tg)+'"'       #   ajout du TG a  t0
    b=x.encode()               #  repetition de la routine 
@@ -97,7 +96,6 @@ def getForNextion(call,rxslot,tg,loss,rxTime):
    b=x.encode()               # idem ci-dessus
    sendToNextion(b)           # envoyer sur l'ecran
    t2="t2.txt="
-   #print ( '{[:01].2f}'.format(x))
    x = str(rxTime)            #  duree de la transmition rx et tx 
    x=t2+'"'+str(x[:4])+'"'
    b=x.encode()
@@ -105,6 +103,12 @@ def getForNextion(call,rxslot,tg,loss,rxTime):
 # ajout de l'heure locale 
 # On peut changer pour time.gmtime()
    t=time.ctime()              # ajout de l heure locale
+#   if mode == "YSF":
+#      t3="t3.txt="
+#      x=t3+'"'+str(t)+'"'
+#      b = x.encode()
+#      sendToNextion(b)
+#   else:  
    t4="t4.txt="
    x= t4+'"'+str(t)+'"'
    b=x.encode()
@@ -139,21 +143,40 @@ def getMode(mode):
 # sur l'ecran il y a un point rouge pour le ptt et vert pour la reception
 # p2 est la picture du point rouge dans le nextion
 def pttOn():
+   global ptt_Auto
+   ptt_auto= True
    ptt="vis p2,1"      # si vis est a 1 le point rouge s'allume 
    b=ptt.encode()
    sendToNextion(b)
    return 
 
+def compare(rs,t):
+   global ptt_Auto
+   #print (rs)
+   if rs >= t:   # cmp(x,y)
+       ptt_Auto = True
+       #print (x)
+   else:
+       ptt_Auto = False
+       #print (x)
+   return rs
+
+def pttOnOffAuto(x):
+    trigger = 40
+    diff= compare (x,trigger)    
+    return x
+
+
 # Fin de transmission on lache le ptt et le  point rouge 
 # s'eteint vis est a 0
 # p2 est la picture du point dans le nextion
 def pttOff():
-#   GPIO.output(RECEPT,GPIO.LOW)
+   global ptt_Auto
+   ptt_Auto=False
    ptt="vis p2,0"
    b=ptt.encode()               # conversion chaine en byte
    sendToNextion(b) 
    return
-
 # On utilise le GPIO 29 ou celui de votre choix pour 
 # commuter le hotspot en mode reception 
 # et en meme temps on allume le point vert ce qui permet de parler sans pc
@@ -163,7 +186,6 @@ def receive():
    rec="vis p1,1"                  #  vis est a 1 donc on allume le point vert
    b=rec.encode()
    sendToNextion(b)
-   #GPIO.output(RECEPT ,GPIO.HIGH)    # apres test inutile
    return
 
 # ici le point vert s'eteint on est en stand bye
@@ -189,6 +211,9 @@ def makeLog(tc,call,tg,loss,rxTime):
      log.write('\n')
      log.close()
      return tc,call,tg,loss,rxTime  
+
+
+
 
 #  fin de modif 
 
@@ -474,10 +499,10 @@ def openStream():
     except:
         logging.info(STRING_WINDOWS_PORT_REUSE)
         pass
-    udp.bind(('', usrp_rx_port))
+    udp.bind(('', usrp_rx_port))  #  MODID  a voir plus tard
 
 def sendto(usrp):
-    for port in usrp_tx_port:
+    for port in usrp_tx_port:    # MODIF A voir plus tard
         udp.sendto(usrp, (ip_address.get(), port))
 
 from ctypes import *
@@ -525,7 +550,7 @@ def rxAudioStream():
     global regState
     global transmit_enable
     global macros
-
+    #global ptt_Auto
     logging.info('Start rx audio thread')
     USRP = bytes("USRP", 'ASCII')
     REG = bytes("REG:", 'ASCII')
@@ -582,7 +607,7 @@ def rxAudioStream():
             audio = soundData[32:]
             if (type == USRP_TYPE_VOICE): # voice
                 audio = soundData[32:]
-                ##print(eye, seq, memory, keyup, talkgroup, type, mpxid, reserved, audio, len(audio), len(soundData))
+                ###print(eye, seq, memory, keyup, talkgroup, type, mpxid, reserved, audio, len(audio), len(soundData))
                 if (len(audio) == 320):
                     if RATE == 48000:
                         (audio48, state) = audioop.ratecv(audio, 2, 1, 8000, 48000, state)
@@ -626,6 +651,7 @@ def rxAudioStream():
                             sleep(sleepTime)
                             registerWithAB()
                     logging.info(audio[:audio.find(b'\x00')].decode('ASCII'))
+ 
                 elif (audio[0:5] == INFO):
                     _json = audio[5:audio.find(b'\x00')].decode('ASCII')
                     if (_json[0:4] == "MSG:"):
@@ -741,9 +767,9 @@ def rxAudioStream():
                     if value[0] == FILE_SUBCOMMAND_ERROR:
                         logging.info("error")
         else:
-#            logging.info(soundData, len(soundData))
+             #print ("test")  # logging.info(soundData, len(soundData))
             pass
-
+         
 #    udp.close()
 
 ###################################################################################
@@ -753,6 +779,9 @@ def txAudioStream():
     global usrpSeq
     global ptt
     global transmit_enable
+    global buff1
+    global ptt_Auto
+    
     FORMAT = pyaudio.paInt16                            # 16 bit signed ints
     CHUNK = 160 if SAMPLE_RATE == 8000 else (160*6)     # Size of chunk to read
     CHANNELS = 1                                        # mono
@@ -782,22 +811,25 @@ def txAudioStream():
             if RATE == 48000:       # If we are reading at 48K we need to resample to 8K
                 audio48 = stream.read(CHUNK, exception_on_overflow=False)
                 (audio, state) = audioop.ratecv(audio48, 2, 1, 48000, 8000, state)
+                #pttOnOffAuto(audio48)  # MODIF
             else:
                 audio = stream.read(CHUNK, exception_on_overflow=False)
-            
-            #rms = audioop.rms(audio, 2)  # MODIF  Get a relative power value for the sample
+                #print ("test 2")
+            rms = audioop.rms(audio, 2)  # MODIF  Get a relative power value for the sample
             ###### Vox processing #####
             if vox_enable.get():
                     transmit_enable=True  # MODIF
-                    #noReceive()
+                    pttOnOffAuto(rms)
+                    #ptt_Auto=False  #pttOnOffAuto(audio48)  # MODIF
+                    #print (ptt_Auto)
 #                if rms > vox_threshold.get():   # is it loud enough?
 #                    decay = vox_delay.get()     # Yes, reset the decay value (wont unkey for N samples)
-                    if (ptt == False) and (transmit_enable == True) and (GPIO.input(PTT)==0): # MODIF  
+                    if (ptt == False)  and (transmit_enable == True) and (ptt_Auto !=False) : #and (GPIO.input(RECEPT==0)):  #(GPIO.input(PTT)==0 ) :    # MODIF  
                         ptt = True              # Set it
                         pttOn()      # MODIF
                         showPTTState(0)         # Update the UI (turn transmit button red, etc)
                         
-                    elif ptt == True and GPIO.input(PTT)==1:  #  MODIF   # Are we too soft and transmitting?
+                    elif ptt == True and ptt_Auto == False : #GPIO.input(PTT)==1:  #  MODIF   # Are we too soft and transmitting?
           #          decay -= 1                  # Decrement the decay counter
           #          if decay <= 0:              # Have we passed N samples, all of them less then the threshold?
                         ptt = False             # Unkey
@@ -806,16 +838,19 @@ def txAudioStream():
                         
   ###########################
 
-            if ptt != lastPtt and GPIO.input(PTT)==1:   # MODIF
+            if ptt != lastPtt and ptt_Auto == False : #GPIO.input(PTT)==1:   # MODIF
                 usrp = 'USRP'.encode('ASCII') + struct.pack('>iiiiiii',usrpSeq, 0, ptt, 0, USRP_TYPE_VOICE, 0, 0) + audio
                 sendto(usrp)
                 usrpSeq = usrpSeq + 1
             lastPtt = ptt
-            if ptt == True and GPIO.input(PTT)==0:    # MODIF
+            if ptt == True and ptt_Auto == True : #GPIO.input(PTT)==0:    # MODIF
                 usrp = 'USRP'.encode('ASCII') + struct.pack('>iiiiiii',usrpSeq, 0, ptt, 0, USRP_TYPE_VOICE, 0, 0) + audio
                 sendto(usrp)
                 usrpSeq = usrpSeq + 1
+                #buff1 = usrp 
+                 
                 #audio_level.set(int(rms/100)) #MODIF
+                 
         except:
             logging.warning("TX thread:" + str(sys.exc_info()[1]))
 
@@ -1089,7 +1124,7 @@ def connect(tup):
 # Mute all TS/TGs
 ###################################################################################
 def disconnect():
-     # MODIF  
+      
     connected_msg.set(STRING_DISCONNECTED)
 #    transmitButton.configure(state='disabled')
      
@@ -1143,9 +1178,8 @@ def init_queue():
 def disconnectButton():
     tg = talk_groups[master.get()][0][1].translate(noQuote) # get the tg at that index
     setRemoteTG(tg)
-#    receive()    #MODIF
     disconnect() 
-#    noReceive()  # MODIF
+
 
 ###################################################################################
 #
@@ -1206,7 +1240,7 @@ def sendValuesToServer():
 def transmit():
     global ptt
     
-    if (transmit_enable == False) and (ptt == False):  # Do not allow transmit key if rx is active
+    if (transmit_enable == False): # and (ptt == False):  # Do not allow transmit key if rx is active
         return
 
     ptt = not ptt
@@ -1220,7 +1254,7 @@ def transmit():
 ###################################################################################
 def showPTTState(flag):
     global tx_start_time
-    if ptt and GPIO.input(PTT)==0:   # MODIF
+    if ptt == True :  # and pttState== True : #GPIO.input(PTT)==0:   # MODIF
         pttOn()   # MODIF
         transmitButton.configure(highlightbackground='red')
         ttk.Style(root).configure("bar.Horizontal.TProgressbar", troughcolor=uc_background_color, bordercolor=uc_text_color, background="red", lightcolor="red", darkcolor="red")
@@ -1242,7 +1276,7 @@ def showPTTState(flag):
             
         ipc_queue.put(empty_photo)  # clear the pic when in idle state
         logging.info("PTT OFF")
-
+        
 ###################################################################################
 # Convience method to help with ttk values
 ###################################################################################
@@ -1713,16 +1747,15 @@ try:
     usrp_rx_port = int(config.get('DEFAULTS', "usrpRxPort").split(None)[0])
     slot = makeTkVar(IntVar, config.get('DEFAULTS', "slot").split(None)[0])
     defaultServer = config.get('DEFAULTS', "defaultServer").split(None)[0]
-    getMode(defaultServer)    # MODIF 
+    getMode(defaultServer)     # MODIF
     asl_mode = makeTkVar(IntVar, config.get('DEFAULTS', "aslMode").split(None)[0])
-    useQRZ = bool(readValue(config, 'DEFAULTS', 'useQRZ', True, int))
-
+    useQRZ = bool(readValue(config, 'DEFAULTS', 'useQRZ', False, int)) #MODIF True
     in_index = readValue(config, 'DEFAULTS', 'in_index', None, int)
     out_index = readValue(config, 'DEFAULTS', 'out_index', None, int)
-
+    
     uc_background_color = readValue(config, 'DEFAULTS', 'backgroundColor', 'gray25', str)
     uc_text_color = readValue(config, 'DEFAULTS', 'textColor', 'white', str)
-
+    
     talk_groups = {}
     for sect in config.sections():
         if (sect != "DEFAULTS") and (sect != "MACROS"):
@@ -1766,6 +1799,7 @@ with noalsaerr():
     p = pyaudio.PyAudio()
 _thread.start_new_thread( rxAudioStream, () )
 if in_index != -1:  # Do not launch the TX thread if the user wants RX only access
+    
     _thread.start_new_thread( txAudioStream, () )
 _thread.start_new_thread( html_thread, () )     # Start up the HTML thread for background image loads
 
