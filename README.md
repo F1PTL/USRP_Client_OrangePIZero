@@ -52,6 +52,7 @@ Install instructions by platform:
 
 - OrangePIZero = modules Spotnik BETA et DELTA (13/04/2020)
     Modification par ON4RD et F1PTL pour les modules Spotnik de F5NLG
+    
     Version Beta 06 du 24/04/2020 disponible pour test
     
     git clone https://github.com/F1PTL/USRP_Client_OrangePIZero.git
