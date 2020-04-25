@@ -46,18 +46,18 @@ import OPi.GPIO as GPIO
 import serial
 import math as calc
 trigger = 0
-PTT = 26                  # pin 31 du raspi = GPIO 06
-RECEPT = 12 # pin 29 du raspi  
+PTT = 26           # pin 26 OrangePIZero
+RECEPT = 12        # pin 12 OrangePIZero  
 flag2=0
 gpioMode= False    # pas de GPIO
 gpios = False      # flag pour passer en mode GPIO
 pttAudio = False
 #-------------------------------------------------------------------------------------
-#                    pour le GPIO PTT 
+# pour le GPIO PTT 
 EtatA = 0      # changer ici si votre GPIO est a l'etat haut ou bas
 EtatB = 1      #   ici inverser
 #-------------------------------------------------------------------------------------
-GPIO.setboard(GPIO.ZERO)
+GPIO.setboard(GPIO.ZERO) # Utilisation GPIO OrangePIZero
 GPIO.setmode(GPIO.BOARD) # mode pin  ou GPIO.BCM mode GPIO
 GPIO.setwarnings(False)  # On desactive les messages d'alerte
 # on met le PTT a l etat HAUT par defaut afin qu il n y aie pas 
@@ -67,7 +67,7 @@ GPIO.setup(PTT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(RECEPT,GPIO.OUT)
 GPIO.output(RECEPT,GPIO.LOW)   # par defaut la reception est desacivee
 BAUD=115200                    # l ecran nextion travaille en 115200 bauds
-PORT='/dev/tty0'            # sur le port UART
+PORT='/dev/tty0'               # sur le port UART
 
 ser = serial.Serial(
 port=PORT,
