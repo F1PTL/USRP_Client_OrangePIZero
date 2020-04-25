@@ -17,6 +17,16 @@
 # OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 ###################################################################################
+# Modification ON4RD : 24/04/2020
+# Version Beta 06 disponible pour RaspBerry PI
+# Modification du bouton dongle_mode en gpio_mode
+# Egalement dans le fichier ini
+# gpioMode = 1  : etata = 0 etatb = 1
+# gpioMode = 2 :  etata = 1 etatb = 0 
+# Diminution automatique du gain de la modulation
+# sorte d agc  pour tous les modes (test)
+###################################################################################
+
 
 from tkinter import *
 from tkinter import ttk
